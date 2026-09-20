@@ -3,65 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>시험보기 - Target Voca</title>
+    <title>기본 설정 - Target Voca</title>
     <link rel="stylesheet" href="./css/style.css" />
-    <script type="module" src="./js/test.js"></script>
+    <script type="module" src="./js/settings.js"></script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="./index.html">Target Voca</a>
       <nav class="nav">
-        <a class="active" href="./test.html">시험보기</a>
+        <a href="./test.html">시험보기</a>
         <a href="./vocabulary.html">단어장보기</a>
         <a href="./wrong.html">오답보기</a>
         <a href="./favorites.html">즐겨찾기</a>
-        <a href="./settings.html">기본 설정</a>
+        <a class="active" href="./settings.html">기본 설정</a>
       </nav>
     </header>
 
     <main class="shell">
       <section class="page-head">
         <div>
-          <p class="eyebrow">Test</p>
-          <h1>시험보기</h1>
+          <p class="eyebrow">Settings</p>
+          <h1>기본 설정</h1>
         </div>
-        <div class="score-pill" id="scorePill">준비</div>
       </section>
 
       <section class="settings">
+        <p class="muted">시험보기 접속 시 기본으로 세팅될 값을 설정합니다.</p>
         <label>
-          문제 유형
-          <select id="directionSelect">
+          기본 문제 유형
+          <select id="defaultDirection">
             <option value="word-to-meaning">영어 → 한글</option>
             <option value="meaning-to-word">한글 → 영어</option>
             <option value="mixed">섞어서</option>
           </select>
         </label>
         <label>
-          문제 방식
-          <select id="modeSelect">
+          기본 문제 방식
+          <select id="defaultMode">
             <option value="choice">객관식</option>
-            <option value="typing">서술형</option>
+            <option value="typing">입력형</option>
             <option value="mixed">섞어서</option>
           </select>
         </label>
         <label>
-          범위
-          <select id="sourceSelect">
-            <option value="all">전체</option>
-            <option value="wrong">오답만</option>
-            <option value="favorites">즐겨찾기만</option>
-          </select>
+          기본 문항 수 (최대 400)
+          <input id="defaultCount" type="number" min="5" max="400" value="20" />
         </label>
-        <label>
-          문항 수
-          <input id="countInput" type="number" min="5" max="400" value="20" />
-        </label>
-        <button class="primary-btn" id="startBtn" type="button">시작</button>
-      </section>
-
-      <section class="test-card" id="testCard">
-        <p class="muted">설정을 고른 뒤 시작을 누르세요.</p>
+        <button class="primary-btn" id="saveBtn" type="button">설정 저장</button>
       </section>
     </main>
   </body>

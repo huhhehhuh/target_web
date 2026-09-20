@@ -10,6 +10,13 @@ const render = () => {
   const words = WORDS.filter((word) => ids.includes(word.id));
   const wrongCounts = getWrongCounts();
   const maxWrongCount = Math.max(1, ...Object.values(wrongCounts));
+
+  words.sort((a, b) => {
+    const countA = wrongCounts[a.id] || 0;
+    const countB = wrongCounts[b.id] || 0;
+    return countB - countA;
+  });
+
   renderWordRows(wrongList, words, {
     emptyText: "아직 저장된 오답이 없습니다.",
     removableWrong: true,

@@ -1,5 +1,5 @@
 import { WORDS } from "../data/words.js";
-import { addWrong, getFavorites, getWrong, setRecentScore } from "./storage.js";
+import { addWrong, getFavorites, getWrong, setRecentScore, getSettings } from "./storage.js";
 import { byId, normalize, shuffle } from "./ui.js";
 
 const directionSelect = byId("directionSelect");
@@ -10,6 +10,15 @@ const startBtn = byId("startBtn");
 const testCard = byId("testCard");
 const scorePill = byId("scorePill");
 
+// 저장된 기본 설정 불러와 적용
+const applyDefaultSettings = () => {
+  const defaults = getSettings();
+  directionSelect.value = defaults.direction;
+  modeSelect.value = defaults.mode;
+  countInput.value = defaults.count;
+};
+applyDefaultSettings();
+
 const params = new URLSearchParams(location.search);
 if (params.get("source")) {
   sourceSelect.value = params.get("source");
@@ -19,6 +28,10 @@ let questions = [];
 let current = 0;
 let correct = 0;
 let locked = false;
+
+let reviewCount = 0;
+let currentWrongQuestions = [];
+let isReviewMode = false;
 
 const pickDirection = () => {
   if (directionSelect.value !== "mixed") return directionSelect.value;
@@ -50,18 +63,40 @@ const makeQuestion = (word) => {
   return { word, direction, mode, prompt, answer };
 };
 
-const startTest = () => {
-  const sourceWords = getSourceWords();
-  if (!sourceWords.length) {
-    testCard.innerHTML = `<div class="empty">이 범위에는 출제할 단어가 없습니다.</div>`;
-    return;
+const startTest = (reviewQuestions = null) => {
+  if (Array.isArray(reviewQuestions)) {
+    isReviewMode = true;
+    reviewCount++;
+    questions = shuffle(reviewQuestions);
+  } else {
+    isReviewMode = false;
+    reviewCount = 0;
+    
+    const sourceWords = getSourceWords();
+    if (!sourceWords.length) {
+      testCard.innerHTML = `<div class="empty">이 범위에는 출제할 단어가 없습니다.</div>`;
+      return;
+    }
+
+    let requested = Number(countInput.value) || 20;
+    if (requested > 400) {
+      alert("최대 문항 수는 400개입니다. 400개로 조정하여 진행합니다.");
+      requested = 400;
+      countInput.value = 400;
+    } else if (requested < 5) {
+      requested = 5;
+    }
+
+    questions = shuffle(sourceWords).slice(0, Math.min(requested, sourceWords.length)).map(makeQuestion);
   }
 
-  const requested = Math.min(Math.max(Number(countInput.value) || 20, 5), 100);
-  questions = shuffle(sourceWords).slice(0, Math.min(requested, sourceWords.length)).map(makeQuestion);
   current = 0;
   correct = 0;
-  scorePill.textContent = `0 / ${questions.length}`;
+  currentWrongQuestions = [];
+  
+  const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
+  scorePill.textContent = `${prefix}0 / ${questions.length}`;
+  
   renderQuestion();
 };
 
@@ -78,7 +113,7 @@ const renderQuestion = () => {
   locked = false;
   const question = questions[current];
   const modeLabel = question.mode === "choice" ? "객관식" : "입력형";
-  const directionLabel = question.direction === "word-to-meaning" ? "영어 → 뜻" : "뜻 → 영어";
+  const directionLabel = question.direction === "word-to-meaning" ? "영어 → 한글" : "한글 → 영어";
   const head = `
     <div class="question-meta">${current + 1} / ${questions.length} · ${directionLabel} · ${modeLabel}</div>
     <div class="question-text">${question.prompt}</div>
@@ -119,6 +154,7 @@ const grade = (given, selectedButton = null) => {
     correct += 1;
   } else {
     addWrong(question.word.id);
+    currentWrongQuestions.push(question);
   }
 
   if (selectedButton) {
@@ -128,11 +164,15 @@ const grade = (given, selectedButton = null) => {
     if (!ok) selectedButton.classList.add("wrong");
   }
 
-  scorePill.textContent = `${correct} / ${questions.length}`;
+  const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
+  scorePill.textContent = `${prefix}${correct} / ${questions.length}`;
+  
+  const feedbackColor = "#d32f2f";
+  
   byId("feedback").innerHTML = `
     <div class="feedback">
-      <strong>${ok ? "정답" : "오답"}</strong>
-      <p>정답: ${question.answer}</p>
+      <strong style="color: ${feedbackColor};">${ok ? "정답" : "오답"}</strong>
+      <p style="color: ${feedbackColor};">정답: ${question.answer}</p>
       <p>${question.word.word} - ${question.word.meaning}</p>
       <button class="primary-btn" id="nextBtn" type="button">${current + 1 === questions.length ? "결과 보기" : "다음"}</button>
     </div>
@@ -145,21 +185,36 @@ const nextQuestion = () => {
   current += 1;
   if (current >= questions.length) {
     const percent = Math.round((correct / questions.length) * 100);
-    const score = `${correct}/${questions.length} (${percent}%)`;
+    const prefix = isReviewMode ? `[${reviewCount}차 복습 결과] ` : "";
+    const score = `${prefix}${correct}/${questions.length} (${percent}%)`;
     setRecentScore(score);
     scorePill.textContent = score;
+    
+    let retryBtnHtml = "";
+    if (currentWrongQuestions.length > 0) {
+      const nextReviewStr = `${reviewCount + 1}차 복습하기 (${currentWrongQuestions.length}문제)`;
+      retryBtnHtml = `<button class="primary-btn" id="retryBtn" type="button">${nextReviewStr}</button>`;
+    } else {
+      retryBtnHtml = `<button class="primary-btn" id="newTestBtn" type="button">새 시험 시작</button>`;
+    }
+
     testCard.innerHTML = `
       <div class="question-meta">시험 완료</div>
       <div class="question-text">${score}</div>
       <div class="button-row">
-        <button class="primary-btn" id="retryBtn" type="button">다시 풀기</button>
+        ${retryBtnHtml}
         <a class="ghost-btn as-link" href="./wrong.html">오답보기</a>
       </div>
     `;
-    byId("retryBtn").addEventListener("click", startTest);
+    
+    if (currentWrongQuestions.length > 0) {
+      byId("retryBtn").addEventListener("click", () => startTest([...currentWrongQuestions]));
+    } else {
+      byId("newTestBtn").addEventListener("click", () => startTest(null)); 
+    }
     return;
   }
   renderQuestion();
 };
 
-startBtn.addEventListener("click", startTest);
+startBtn.addEventListener("click", () => startTest(null));

@@ -3,6 +3,7 @@ const KEYS = {
   wrong: "targetVoca:wrong",
   wrongCounts: "targetVoca:wrongCounts",
   recentScore: "targetVoca:recentScore",
+  settings: "targetVoca:settings",
 };
 
 const readArray = (key) => {
@@ -87,3 +88,16 @@ export const setRecentScore = (score) => {
 };
 
 export const getRecentScore = () => localStorage.getItem(KEYS.recentScore) || "-";
+
+export const getSettings = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KEYS.settings));
+    return parsed || { direction: "word-to-meaning", mode: "choice", count: 20 };
+  } catch {
+    return { direction: "word-to-meaning", mode: "choice", count: 20 };
+  }
+};
+
+export const setSettings = (settingsObj) => {
+  localStorage.setItem(KEYS.settings, JSON.stringify(settingsObj));
+};
