@@ -9,17 +9,6 @@ const countInput = byId("countInput");
 const startBtn = byId("startBtn");
 const testCard = byId("testCard");
 const scorePill = byId("scorePill");
-const typingModeOption = byId("typingModeOption");
-const mixedModeOption = byId("mixedModeOption");
-
-const updateModeAvailability = () => {
-  const isWordToMeaning = directionSelect.value === "word-to-meaning";
-  typingModeOption.disabled = isWordToMeaning;
-  mixedModeOption.disabled = isWordToMeaning;
-  if (isWordToMeaning && modeSelect.value !== "choice") {
-    modeSelect.value = "choice";
-  }
-};
 
 // 저장된 기본 설정 불러와 적용
 const applyDefaultSettings = () => {
@@ -27,7 +16,6 @@ const applyDefaultSettings = () => {
   directionSelect.value = defaults.direction;
   modeSelect.value = defaults.mode;
   countInput.value = defaults.count;
-  updateModeAvailability();
 };
 applyDefaultSettings();
 
@@ -69,8 +57,7 @@ const getSourceWords = () => {
 
 const makeQuestion = (word) => {
   const direction = pickDirection();
-  const selectedMode = pickMode();
-  const mode = direction === "word-to-meaning" ? "choice" : selectedMode;
+  const mode = pickMode();
   const prompt = direction === "word-to-meaning" ? word.word : word.meaning;
   const answer = direction === "word-to-meaning" ? word.meaning : word.word;
   return { word, direction, mode, prompt, answer };
@@ -125,8 +112,8 @@ const makeChoices = (question) => {
 const renderQuestion = () => {
   locked = false;
   const question = questions[current];
-  const modeLabel = question.mode === "choice" ? "객관식" : "서술형";
-  const directionLabel = question.direction === "word-to-meaning" ? "영어 → 한글" : "한글 → 영어";
+  const modeLabel = question.mode === "choice" ? "객관식" : "입력형";
+  const directionLabel = question.direction === "word-to-meaning" ? "영어 → 뜻" : "뜻 → 영어";
   const head = `
     <div class="question-meta">${current + 1} / ${questions.length} · ${directionLabel} · ${modeLabel}</div>
     <div class="question-text">${question.prompt}</div>
@@ -180,16 +167,69 @@ const grade = (given, selectedButton = null) => {
   const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
   scorePill.textContent = `${prefix}${correct} / ${questions.length}`;
   
+  const feedbackColor = ok ? "#2e7d32" : "#d32f2f";
+  
   byId("feedback").innerHTML = `
-    <div class="feedback ${ok ? "correct" : "wrong"}">
-      <strong>${ok ? "정답" : "오답"}</strong>
-      <p>정답: ${question.answer}</p>
+    <div class="feedback">
+      <strong style="color: ${feedbackColor};">${ok ? "정답" : "오답"}</strong>
+      <p style="color: ${feedbackColor};">정답: ${question.answer}</p>
       <p>${question.word.word} - ${question.word.meaning}</p>
       <button class="primary-btn" id="nextBtn" type="button">${current + 1 === questions.length ? "결과 보기" : "다음"}</button>
     </div>
   `;
   byId("nextBtn").focus();
   byId("nextBtn").addEventListener("click", nextQuestion);
+};
+
+// 이번 시험 틀린 문제 팝업(모달) 띄우기 함수
+const showCurrentWrongModal = () => {
+  if (!currentWrongQuestions.length) return;
+
+  const existingModal = document.getElementById("wrongModalOverlay");
+  if (existingModal) existingModal.remove();
+
+  const modalHtml = `
+    <div id="wrongModalOverlay" style="
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px; box-sizing: border-box;
+    ">
+      <div style="
+        background: white; border-radius: 12px; width: 100%; max-width: 480px;
+        max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2); padding: 20px; text-align: left;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+          <h3 style="margin: 0; font-size: 1.15rem; color: #333;">이번 시험 틀린 문제 (${currentWrongQuestions.length}개)</h3>
+          <button id="closeWrongModalBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+        </div>
+        <div style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+          ${currentWrongQuestions.map(q => `
+            <div style="padding: 10px 12px; background: #fff5f5; border-radius: 8px; border-left: 4px solid #ef5350;">
+              <div style="font-weight: bold; font-size: 1.05rem; color: #c62828;">${q.word.word}</div>
+              <div style="font-size: 0.95rem; color: #424242; margin-top: 2px;">${q.word.meaning}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top: 16px; text-align: right;">
+          <button class="primary-btn" id="confirmCloseModalBtn" style="padding: 8px 16px;">닫기</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  const closeModal = () => {
+    const modal = document.getElementById("wrongModalOverlay");
+    if (modal) modal.remove();
+  };
+
+  document.getElementById("closeWrongModalBtn").addEventListener("click", closeModal);
+  document.getElementById("confirmCloseModalBtn").addEventListener("click", closeModal);
+  document.getElementById("wrongModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "wrongModalOverlay") closeModal();
+  });
 };
 
 const nextQuestion = () => {
@@ -214,12 +254,13 @@ const nextQuestion = () => {
       <div class="question-text">${score}</div>
       <div class="button-row">
         ${retryBtnHtml}
-        <a class="ghost-btn as-link" href="./wrong.html">오답보기</a>
+        ${currentWrongQuestions.length > 0 ? `<button class="ghost-btn" id="viewCurrentWrongBtn" type="button">오답 확인</button>` : ""}
       </div>
     `;
     
     if (currentWrongQuestions.length > 0) {
       byId("retryBtn").addEventListener("click", () => startTest([...currentWrongQuestions]));
+      byId("viewCurrentWrongBtn").addEventListener("click", showCurrentWrongModal);
     } else {
       byId("newTestBtn").addEventListener("click", () => startTest(null)); 
     }
@@ -228,5 +269,4 @@ const nextQuestion = () => {
   renderQuestion();
 };
 
-directionSelect.addEventListener("change", updateModeAvailability);
 startBtn.addEventListener("click", () => startTest(null));
