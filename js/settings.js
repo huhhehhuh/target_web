@@ -5,14 +5,27 @@ const directionSelect = byId("defaultDirection");
 const modeSelect = byId("defaultMode");
 const countInput = byId("defaultCount");
 const saveBtn = byId("saveBtn");
+const typingModeOption = byId("defaultTypingModeOption");
+const mixedModeOption = byId("defaultMixedModeOption");
+
+const updateModeAvailability = () => {
+  const isWordToMeaning = directionSelect.value === "word-to-meaning";
+  typingModeOption.disabled = isWordToMeaning;
+  mixedModeOption.disabled = isWordToMeaning;
+  if (isWordToMeaning && modeSelect.value !== "choice") {
+    modeSelect.value = "choice";
+  }
+};
 
 const init = () => {
   const currentSettings = getSettings();
   directionSelect.value = currentSettings.direction || "word-to-meaning";
   modeSelect.value = currentSettings.mode || "choice";
   countInput.value = currentSettings.count || 20;
+  updateModeAvailability();
 };
 
+directionSelect.addEventListener("change", updateModeAvailability);
 saveBtn.addEventListener("click", () => {
   let countVal = Number(countInput.value) || 20;
   if (countVal > 400) {

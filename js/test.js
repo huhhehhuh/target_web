@@ -9,6 +9,17 @@ const countInput = byId("countInput");
 const startBtn = byId("startBtn");
 const testCard = byId("testCard");
 const scorePill = byId("scorePill");
+const typingModeOption = byId("typingModeOption");
+const mixedModeOption = byId("mixedModeOption");
+
+const updateModeAvailability = () => {
+  const isWordToMeaning = directionSelect.value === "word-to-meaning";
+  typingModeOption.disabled = isWordToMeaning;
+  mixedModeOption.disabled = isWordToMeaning;
+  if (isWordToMeaning && modeSelect.value !== "choice") {
+    modeSelect.value = "choice";
+  }
+};
 
 // 저장된 기본 설정 불러와 적용
 const applyDefaultSettings = () => {
@@ -16,6 +27,7 @@ const applyDefaultSettings = () => {
   directionSelect.value = defaults.direction;
   modeSelect.value = defaults.mode;
   countInput.value = defaults.count;
+  updateModeAvailability();
 };
 applyDefaultSettings();
 
@@ -57,7 +69,8 @@ const getSourceWords = () => {
 
 const makeQuestion = (word) => {
   const direction = pickDirection();
-  const mode = pickMode();
+  const selectedMode = pickMode();
+  const mode = direction === "word-to-meaning" ? "choice" : selectedMode;
   const prompt = direction === "word-to-meaning" ? word.word : word.meaning;
   const answer = direction === "word-to-meaning" ? word.meaning : word.word;
   return { word, direction, mode, prompt, answer };
@@ -112,7 +125,7 @@ const makeChoices = (question) => {
 const renderQuestion = () => {
   locked = false;
   const question = questions[current];
-  const modeLabel = question.mode === "choice" ? "객관식" : "입력형";
+  const modeLabel = question.mode === "choice" ? "객관식" : "서술형";
   const directionLabel = question.direction === "word-to-meaning" ? "영어 → 한글" : "한글 → 영어";
   const head = `
     <div class="question-meta">${current + 1} / ${questions.length} · ${directionLabel} · ${modeLabel}</div>
@@ -217,4 +230,5 @@ const nextQuestion = () => {
   renderQuestion();
 };
 
+directionSelect.addEventListener("change", updateModeAvailability);
 startBtn.addEventListener("click", () => startTest(null));
