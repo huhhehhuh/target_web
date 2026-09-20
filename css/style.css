@@ -482,6 +482,24 @@ select:focus {
   background: var(--surface-soft);
 }
 
+.feedback.correct {
+  background: var(--green-soft);
+  color: var(--green-strong);
+}
+
+.feedback.wrong {
+  background: var(--red-soft);
+  color: #c62828;
+}
+
+.feedback p {
+  color: inherit;
+}
+
+.feedback.wrong .primary-btn {
+  background: var(--red);
+}
+
 .score-pill {
   border-radius: 18px;
   background: var(--green-soft);

@@ -180,12 +180,10 @@ const grade = (given, selectedButton = null) => {
   const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
   scorePill.textContent = `${prefix}${correct} / ${questions.length}`;
   
-  const feedbackColor = "#d32f2f";
-  
   byId("feedback").innerHTML = `
-    <div class="feedback">
-      <strong style="color: ${feedbackColor};">${ok ? "정답" : "오답"}</strong>
-      <p style="color: ${feedbackColor};">정답: ${question.answer}</p>
+    <div class="feedback ${ok ? "correct" : "wrong"}">
+      <strong>${ok ? "정답" : "오답"}</strong>
+      <p>정답: ${question.answer}</p>
       <p>${question.word.word} - ${question.word.meaning}</p>
       <button class="primary-btn" id="nextBtn" type="button">${current + 1 === questions.length ? "결과 보기" : "다음"}</button>
     </div>
