@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>단어장보기 - Target Voca</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/vocabulary.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html">Target Voca</a>
+      <nav class="nav">
+        <a href="./test.html">시험보기</a>
+        <a class="active" href="./vocabulary.html">단어장보기</a>
+        <a href="./wrong.html">오답보기</a>
+        <a href="./favorites.html">즐겨찾기</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="page-head">
+        <div>
+          <p class="eyebrow">Vocabulary</p>
+          <h1>단어장보기</h1>
+        </div>
+        <button class="ghost-btn" id="toggleMeanings" type="button">뜻 가리기</button>
+      </section>
+
+      <section class="toolbar">
+        <input id="searchInput" type="search" placeholder="단어 또는 뜻 검색" />
+        <select id="rangeSelect" aria-label="범위 선택">
+          <option value="all">전체 1-400</option>
+          <option value="1-100">1-100</option>
+          <option value="101-200">101-200</option>
+          <option value="201-300">201-300</option>
+          <option value="301-400">301-400</option>
+        </select>
+      </section>
+
+      <p class="list-count" id="listCount"></p>
+      <section class="word-list" id="wordList" aria-live="polite"></section>
+    </main>
+  </body>
+</html>

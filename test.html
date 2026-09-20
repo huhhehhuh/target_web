@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>시험보기 - Target Voca</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/test.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html">Target Voca</a>
+      <nav class="nav">
+        <a class="active" href="./test.html">시험보기</a>
+        <a href="./vocabulary.html">단어장보기</a>
+        <a href="./wrong.html">오답보기</a>
+        <a href="./favorites.html">즐겨찾기</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="page-head">
+        <div>
+          <p class="eyebrow">Test</p>
+          <h1>시험보기</h1>
+        </div>
+        <div class="score-pill" id="scorePill">준비</div>
+      </section>
+
+      <section class="settings">
+        <label>
+          문제 유형
+          <select id="directionSelect">
+            <option value="word-to-meaning">영어 → 한글</option>
+            <option value="meaning-to-word">한글 → 영어</option>
+            <option value="mixed">섞어서</option>
+          </select>
+        </label>
+        <label>
+          문제 방식
+          <select id="modeSelect">
+            <option value="choice">객관식</option>
+            <option value="typing">서술형</option>
+            <option value="mixed">섞어서</option>
+          </select>
+        </label>
+        <label>
+          범위
+          <select id="sourceSelect">
+            <option value="all">전체</option>
+            <option value="wrong">오답만</option>
+            <option value="favorites">즐겨찾기만</option>
+          </select>
+        </label>
+        <label>
+          문항 수
+          <input id="countInput" type="number" min="5" max="100" value="20" />
+        </label>
+        <button class="primary-btn" id="startBtn" type="button">시작</button>
+      </section>
+
+      <section class="test-card" id="testCard">
+        <p class="muted">설정을 고른 뒤 시작을 누르세요.</p>
+      </section>
+    </main>
+  </body>
+</html>

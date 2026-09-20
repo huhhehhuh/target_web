@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>즐겨찾기 - Target Voca</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/favorites.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html">Target Voca</a>
+      <nav class="nav">
+        <a href="./test.html">시험보기</a>
+        <a href="./vocabulary.html">단어장보기</a>
+        <a href="./wrong.html">오답보기</a>
+        <a class="active" href="./favorites.html">즐겨찾기</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="page-head">
+        <div>
+          <p class="eyebrow">Favorites</p>
+          <h1>즐겨찾기</h1>
+        </div>
+        <div class="button-row">
+          <a class="ghost-btn as-link" href="./test.html?source=favorites">즐겨찾기 시험</a>
+          <button class="danger-btn" id="clearFavorites" type="button">전체 삭제</button>
+        </div>
+      </section>
+      <section class="word-list" id="favoriteList"></section>
+    </main>
+  </body>
+</html>

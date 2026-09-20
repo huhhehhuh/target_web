@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Target 영어 단어 학습</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/home.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html">Target Voca</a>
+      <nav class="nav">
+        <a href="./test.html">시험보기</a>
+        <a href="./vocabulary.html">단어장보기</a>
+        <a href="./wrong.html">오답보기</a>
+        <a href="./favorites.html">즐겨찾기</a>
+      </nav>
+    </header>
+
+    <main class="shell home-shell">
+      <section class="app-title">
+        <div class="target-mark" aria-hidden="true"></div>
+        <h1>Target</h1>
+        <p>2026 2학년 2학기 1차 정기 범위</p>
+      </section>
+
+      <section class="quick-grid" aria-label="주요 메뉴">
+        <a class="menu-card" href="./vocabulary.html">
+          <span class="menu-icon">□</span>
+          <strong>단어장 보기</strong>
+          <small id="totalCount">400</small>
+        </a>
+        <a class="menu-card" href="./test.html">
+          <span class="menu-icon">✓</span>
+          <strong>시험 보기</strong>
+          <small id="recentScore">최근 점수 -</small>
+        </a>
+        <a class="menu-card" href="./favorites.html">
+          <span class="menu-icon">★</span>
+          <strong>즐겨찾기</strong>
+          <small><b id="favoriteCount">0</b>개 저장</small>
+        </a>
+        <a class="menu-card" href="./wrong.html">
+          <span class="menu-icon">!</span>
+          <strong>오답노트</strong>
+          <small><b id="wrongCount">0</b>개 저장</small>
+        </a>
+      </section>
+    </main>
+  </body>
+</html>
