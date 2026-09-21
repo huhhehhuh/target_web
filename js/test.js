@@ -1,272 +1,218 @@
 import { WORDS } from "../data/words.js";
-import { addWrong, getFavorites, getWrong, setRecentScore, getSettings } from "./storage.js";
-import { byId, normalize, shuffle } from "./ui.js";
+import { addWrong, getFavorites, getWrong, setRecentScore } from "./storage.js";
 
-const directionSelect = byId("directionSelect");
-const modeSelect = byId("modeSelect");
-const sourceSelect = byId("sourceSelect");
-const countInput = byId("countInput");
-const startBtn = byId("startBtn");
-const testCard = byId("testCard");
-const scorePill = byId("scorePill");
+// DOM 요소
+const settingsEl = document.querySelector('.settings');
+const testCard = document.getElementById('testCard');
+const startBtn = document.getElementById('startBtn');
+const scorePill = document.getElementById('scorePill');
 
-// 저장된 기본 설정 불러와 적용
-const applyDefaultSettings = () => {
-  const defaults = getSettings();
-  directionSelect.value = defaults.direction;
-  modeSelect.value = defaults.mode;
-  countInput.value = defaults.count;
-};
-applyDefaultSettings();
+const directionSelect = document.getElementById('directionSelect');
+const modeSelect = document.getElementById('modeSelect');
+const sourceSelect = document.getElementById('sourceSelect');
+const countInput = document.getElementById('countInput');
 
-const params = new URLSearchParams(location.search);
-if (params.get("source")) {
-  sourceSelect.value = params.get("source");
-}
-
+// 상태 변수
 let questions = [];
-let current = 0;
-let correct = 0;
-let locked = false;
+let currentIndex = 0;
+let score = 0;
+let wrongAnswers = [];
 
-let reviewCount = 0;
-let currentWrongQuestions = [];
-let isReviewMode = false;
-
-const pickDirection = () => {
-  if (directionSelect.value !== "mixed") return directionSelect.value;
-  return Math.random() > 0.5 ? "word-to-meaning" : "meaning-to-word";
-};
-
-const pickMode = () => {
-  if (modeSelect.value !== "mixed") return modeSelect.value;
-  return Math.random() > 0.5 ? "choice" : "typing";
-};
-
-const getSourceWords = () => {
-  if (sourceSelect.value === "wrong") {
-    const ids = getWrong();
-    return WORDS.filter((word) => ids.includes(word.id));
+// URL 파라미터 체크 (예: ?source=favorites)
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const srcParam = params.get('source');
+  if (srcParam && sourceSelect) {
+    sourceSelect.value = srcParam;
   }
-  if (sourceSelect.value === "favorites") {
-    const ids = getFavorites();
-    return WORDS.filter((word) => ids.includes(word.id));
-  }
-  return WORDS;
-};
+});
 
-const makeQuestion = (word) => {
-  const direction = pickDirection();
-  const mode = pickMode();
-  const prompt = direction === "word-to-meaning" ? word.word : word.meaning;
-  const answer = direction === "word-to-meaning" ? word.meaning : word.word;
-  return { word, direction, mode, prompt, answer };
-};
+startBtn.addEventListener('click', startTest);
 
-const startTest = (reviewQuestions = null) => {
-  if (Array.isArray(reviewQuestions)) {
-    isReviewMode = true;
-    reviewCount++;
-    questions = shuffle(reviewQuestions);
-  } else {
-    isReviewMode = false;
-    reviewCount = 0;
-    
-    const sourceWords = getSourceWords();
-    if (!sourceWords.length) {
-      testCard.innerHTML = `<div class="empty">이 범위에는 출제할 단어가 없습니다.</div>`;
-      return;
-    }
+function startTest() {
+  const direction = directionSelect.value;
+  const mode = modeSelect.value;
+  const source = sourceSelect.value;
+  let count = parseInt(countInput.value, 10) || 20;
 
-    let requested = Number(countInput.value) || 20;
-    if (requested > 400) {
-      alert("최대 문항 수는 400개입니다. 400개로 조정하여 진행합니다.");
-      requested = 400;
-      countInput.value = 400;
-    } else if (requested < 5) {
-      requested = 5;
-    }
+  let pool = [...WORDS];
 
-    questions = shuffle(sourceWords).slice(0, Math.min(requested, sourceWords.length)).map(makeQuestion);
+  if (source === 'favorites') {
+    const favs = getFavorites();
+    pool = pool.filter(w => favs.includes(w.id));
+  } else if (source === 'wrong') {
+    const wrongs = getWrong();
+    pool = pool.filter(w => wrongs.includes(w.id));
   }
 
-  current = 0;
-  correct = 0;
-  currentWrongQuestions = [];
-  
-  const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
-  scorePill.textContent = `${prefix}0 / ${questions.length}`;
-  
-  renderQuestion();
-};
-
-const makeChoices = (question) => {
-  const isMeaning = question.direction === "word-to-meaning";
-  const pool = WORDS.filter((item) => item.id !== question.word.id);
-  const distractors = shuffle(pool)
-    .slice(0, 3)
-    .map((item) => (isMeaning ? item.meaning : item.word));
-  return shuffle([question.answer, ...distractors]);
-};
-
-const renderQuestion = () => {
-  locked = false;
-  const question = questions[current];
-  const modeLabel = question.mode === "choice" ? "객관식" : "입력형";
-  const directionLabel = question.direction === "word-to-meaning" ? "영어 → 뜻" : "뜻 → 영어";
-  const head = `
-    <div class="question-meta">${current + 1} / ${questions.length} · ${directionLabel} · ${modeLabel}</div>
-    <div class="question-text">${question.prompt}</div>
-  `;
-
-  if (question.mode === "choice") {
-    const choices = makeChoices(question)
-      .map((choice) => `<button class="choice-btn" type="button">${choice}</button>`)
-      .join("");
-    testCard.innerHTML = `${head}<div class="choices">${choices}</div><div id="feedback"></div>`;
-    testCard.querySelectorAll(".choice-btn").forEach((button) => {
-      button.addEventListener("click", () => grade(button.textContent, button));
-    });
-  } else {
-    testCard.innerHTML = `
-      ${head}
-      <form class="answer-form" id="answerForm">
-        <input id="answerInput" autocomplete="off" placeholder="정답 입력" />
-        <button class="primary-btn" type="submit">확인</button>
-      </form>
-      <div id="feedback"></div>
-    `;
-    byId("answerInput").focus();
-    byId("answerForm").addEventListener("submit", (event) => {
-      event.preventDefault();
-      grade(byId("answerInput").value);
-    });
-  }
-};
-
-const grade = (given, selectedButton = null) => {
-  if (locked) return;
-  locked = true;
-  const question = questions[current];
-  const ok = normalize(given) === normalize(question.answer);
-
-  if (ok) {
-    correct += 1;
-  } else {
-    addWrong(question.word.id);
-    currentWrongQuestions.push(question);
-  }
-
-  if (selectedButton) {
-    testCard.querySelectorAll(".choice-btn").forEach((button) => {
-      if (normalize(button.textContent) === normalize(question.answer)) button.classList.add("correct");
-    });
-    if (!ok) selectedButton.classList.add("wrong");
-  }
-
-  const prefix = isReviewMode ? `[${reviewCount}차 복습] ` : "";
-  scorePill.textContent = `${prefix}${correct} / ${questions.length}`;
-  
-  const feedbackColor = ok ? "#2e7d32" : "#d32f2f";
-  
-  byId("feedback").innerHTML = `
-    <div class="feedback">
-      <strong style="color: ${feedbackColor};">${ok ? "정답" : "오답"}</strong>
-      <p style="color: ${feedbackColor};">정답: ${question.answer}</p>
-      <p>${question.word.word} - ${question.word.meaning}</p>
-      <button class="primary-btn" id="nextBtn" type="button">${current + 1 === questions.length ? "결과 보기" : "다음"}</button>
-    </div>
-  `;
-  byId("nextBtn").focus();
-  byId("nextBtn").addEventListener("click", nextQuestion);
-};
-
-// 이번 시험 틀린 문제 팝업(모달) 띄우기 함수
-const showCurrentWrongModal = () => {
-  if (!currentWrongQuestions.length) return;
-
-  const existingModal = document.getElementById("wrongModalOverlay");
-  if (existingModal) existingModal.remove();
-
-  const modalHtml = `
-    <div id="wrongModalOverlay" style="
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
-      z-index: 1000; padding: 20px; box-sizing: border-box;
-    ">
-      <div style="
-        background: white; border-radius: 12px; width: 100%; max-width: 480px;
-        max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2); padding: 20px; text-align: left;
-      ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-          <h3 style="margin: 0; font-size: 1.15rem; color: #333;">이번 시험 틀린 문제 (${currentWrongQuestions.length}개)</h3>
-          <button id="closeWrongModalBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
-        </div>
-        <div style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
-          ${currentWrongQuestions.map(q => `
-            <div style="padding: 10px 12px; background: #fff5f5; border-radius: 8px; border-left: 4px solid #ef5350;">
-              <div style="font-weight: bold; font-size: 1.05rem; color: #c62828;">${q.word.word}</div>
-              <div style="font-size: 0.95rem; color: #424242; margin-top: 2px;">${q.word.meaning}</div>
-            </div>
-          `).join('')}
-        </div>
-        <div style="margin-top: 16px; text-align: right;">
-          <button class="primary-btn" id="confirmCloseModalBtn" style="padding: 8px 16px;">닫기</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML("beforeend", modalHtml);
-
-  const closeModal = () => {
-    const modal = document.getElementById("wrongModalOverlay");
-    if (modal) modal.remove();
-  };
-
-  document.getElementById("closeWrongModalBtn").addEventListener("click", closeModal);
-  document.getElementById("confirmCloseModalBtn").addEventListener("click", closeModal);
-  document.getElementById("wrongModalOverlay").addEventListener("click", (e) => {
-    if (e.target.id === "wrongModalOverlay") closeModal();
-  });
-};
-
-const nextQuestion = () => {
-  current += 1;
-  if (current >= questions.length) {
-    const percent = Math.round((correct / questions.length) * 100);
-    const prefix = isReviewMode ? `[${reviewCount}차 복습 결과] ` : "";
-    const score = `${prefix}${correct}/${questions.length} (${percent}%)`;
-    setRecentScore(score);
-    scorePill.textContent = score;
-    
-    let retryBtnHtml = "";
-    if (currentWrongQuestions.length > 0) {
-      const nextReviewStr = `${reviewCount + 1}차 복습하기 (${currentWrongQuestions.length}문제)`;
-      retryBtnHtml = `<button class="primary-btn" id="retryBtn" type="button">${nextReviewStr}</button>`;
-    } else {
-      retryBtnHtml = `<button class="primary-btn" id="newTestBtn" type="button">새 시험 시작</button>`;
-    }
-
-    testCard.innerHTML = `
-      <div class="question-meta">시험 완료</div>
-      <div class="question-text">${score}</div>
-      <div class="button-row">
-        ${retryBtnHtml}
-        ${currentWrongQuestions.length > 0 ? `<button class="ghost-btn" id="viewCurrentWrongBtn" type="button">오답 확인</button>` : ""}
-      </div>
-    `;
-    
-    if (currentWrongQuestions.length > 0) {
-      byId("retryBtn").addEventListener("click", () => startTest([...currentWrongQuestions]));
-      byId("viewCurrentWrongBtn").addEventListener("click", showCurrentWrongModal);
-    } else {
-      byId("newTestBtn").addEventListener("click", () => startTest(null)); 
-    }
+  if (pool.length === 0) {
+    alert('선택한 범위에 해당하는 단어가 없습니다.');
     return;
   }
-  renderQuestion();
-};
 
-startBtn.addEventListener("click", () => startTest(null));
+  // Shuffle pool
+  pool.sort(() => Math.random() - 0.5);
+  count = Math.min(count, pool.length);
+  const selectedWords = pool.slice(0, count);
+
+  questions = selectedWords.map(word => {
+    let currentDirection = direction;
+    if (direction === 'mixed') {
+      currentDirection = Math.random() > 0.5 ? 'word-to-meaning' : 'meaning-to-word';
+    }
+
+    let currentMode = mode;
+    if (mode === 'mixed') {
+      currentMode = Math.random() > 0.5 ? 'choice' : 'typing';
+    }
+
+    return {
+      wordObj: word,
+      direction: currentDirection,
+      mode: currentMode
+    };
+  });
+
+  currentIndex = 0;
+  score = 0;
+  wrongAnswers = [];
+
+  // [개선 2] 시험 시작 시 설정창 숨기기
+  if (settingsEl) {
+    settingsEl.style.display = 'none';
+  }
+
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if (currentIndex >= questions.length) {
+    finishTest();
+    return;
+  }
+
+  scorePill.textContent = `${currentIndex + 1} / ${questions.length}`;
+
+  const q = questions[currentIndex];
+  const { wordObj, direction, mode } = q;
+
+  const questionText = direction === 'word-to-meaning' ? wordObj.word : wordObj.meaning;
+  const answerText = direction === 'word-to-meaning' ? wordObj.meaning : wordObj.word;
+
+  let html = `
+    <div class="test-card-inner">
+      <div class="q-badge">${q.mode === 'choice' ? '객관식' : '서술형'} (${currentIndex + 1}/${questions.length})</div>
+      <h2 class="q-text">${questionText}</h2>
+  `;
+
+  if (mode === 'choice') {
+    // 오답 보기 3개 생성
+    const otherWords = WORDS.filter(w => w.id !== wordObj.id);
+    otherWords.sort(() => Math.random() - 0.5);
+    const distractors = otherWords.slice(0, 3).map(w => direction === 'word-to-meaning' ? w.meaning : w.word);
+
+    const options = [answerText, ...distractors];
+    options.sort(() => Math.random() - 0.5);
+
+    html += `<div class="options-grid">`;
+    options.forEach(opt => {
+      // opt 내 따옴표 예방 처리
+      const safeOpt = opt.replace(/"/g, '&quot;');
+      html += `<button class="option-btn" type="button" data-val="${safeOpt}">${opt}</button>`;
+    });
+    html += `</div>`;
+  } else {
+    // 서술형
+    html += `
+      <form id="typingForm" class="typing-box">
+        <input type="text" id="typingInput" class="typing-input" placeholder="정답 입력..." autocomplete="off" autofocus />
+        <button type="submit" class="primary-btn submit-btn">제출</button>
+      </form>
+    `;
+  }
+
+  html += `</div>`;
+  testCard.innerHTML = html;
+
+  // 이벤트 바인딩
+  if (mode === 'choice') {
+    const btns = testCard.querySelectorAll('.option-btn');
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => handleAnswer(btn.dataset.val, answerText));
+    });
+  } else {
+    const form = document.getElementById('typingForm');
+    const input = document.getElementById('typingInput');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleAnswer(input.value.trim(), answerText);
+    });
+  }
+}
+
+function handleAnswer(userAns, correctAns) {
+  const q = questions[currentIndex];
+  
+  // 정답 처리 (공백 및 대소문자 정리)
+  const isCorrect = userAns.trim().toLowerCase() === correctAns.trim().toLowerCase();
+
+  if (isCorrect) {
+    score++;
+    currentIndex++;
+    // [개선 1] 맞았을 경우 확인 과정 없이 바로 다음 문제로 이동!
+    renderQuestion();
+  } else {
+    // 틀렸을 경우 오답 저장 및 결과 확인 화면 표시
+    wrongAnswers.push(q.wordObj);
+    saveToWrongStorage(q.wordObj);
+
+    testCard.innerHTML = `
+      <div class="test-card-inner feedback-box">
+        <div class="result-icon wrong">✕</div>
+        <h3 class="feedback-title wrong-text">오답입니다</h3>
+        <p class="user-ans">내가 쓴 답: <span>${userAns || '(빈칸)'}</span></p>
+        <p class="correct-ans">정답: <strong>${correctAns}</strong></p>
+        <button class="primary-btn next-btn" id="nextQuestionBtn" type="button">다음 문제</button>
+      </div>
+    `;
+
+    document.getElementById('nextQuestionBtn').addEventListener('click', () => {
+      currentIndex++;
+      renderQuestion();
+    });
+  }
+}
+
+function saveToWrongStorage(wordObj) {
+  addWrong(wordObj.id);
+}
+
+function finishTest() {
+  scorePill.textContent = '완료';
+
+  const total = questions.length;
+  const percentage = Math.round((score / total) * 100);
+
+  // 최근 점수 저장
+  setRecentScore(`${score}/${total} (${percentage}점)`);
+
+  testCard.innerHTML = `
+    <div class="test-card-inner result-summary">
+      <h2>시험 종료</h2>
+      <div class="final-score">${score} / ${total}</div>
+      <p class="score-desc">정답률: ${percentage}%</p>
+      <div class="result-actions">
+        <button class="primary-btn" id="restartBtn" type="button">다시 시험보기</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    // [개선 2] 시험 종료 후 다시 시작할 때 설정창 복원
+    if (settingsEl) {
+      settingsEl.style.display = 'grid';
+    }
+    testCard.innerHTML = `<p class="muted">설정을 고른 뒤 시작을 누르세요.</p>`;
+    scorePill.textContent = '준비';
+  });
+}
