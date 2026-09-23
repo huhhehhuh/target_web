@@ -147,6 +147,7 @@ function renderQuestion() {
       e.preventDefault();
       handleAnswer(input.value.trim(), answerText);
     });
+    input.focus();
   }
 }
 
