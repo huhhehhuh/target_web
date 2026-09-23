@@ -661,6 +661,11 @@ select:focus {
   align-items: center;
 }
 
+.stop-test-btn {
+  align-self: flex-end;
+  margin-bottom: 12px;
+}
+
 /* 2. 문제 텍스트 및 배지 가독성 */
 .q-badge {
   display: inline-block;

@@ -100,6 +100,7 @@ function renderQuestion() {
   const answerText = direction === 'word-to-meaning' ? wordObj.meaning : wordObj.word;
 
   let html = `
+    <button class="ghost-btn stop-test-btn" id="stopTestBtn" type="button">시험 중단</button>
     <div class="test-card-inner">
       <div class="q-badge">${q.mode === 'choice' ? '객관식' : '서술형'} (${currentIndex + 1}/${questions.length})</div>
       <h2 class="q-text">${questionText}</h2>
@@ -133,6 +134,8 @@ function renderQuestion() {
 
   html += `</div>`;
   testCard.innerHTML = html;
+
+  document.getElementById('stopTestBtn').addEventListener('click', stopTest);
 
   // 이벤트 바인딩
   if (mode === 'choice') {
@@ -168,6 +171,7 @@ function handleAnswer(userAns, correctAns) {
     saveToWrongStorage(q.wordObj);
 
     testCard.innerHTML = `
+      <button class="ghost-btn stop-test-btn" id="stopTestBtn" type="button">시험 중단</button>
       <div class="test-card-inner feedback-box">
         <div class="result-icon wrong">✕</div>
         <h3 class="feedback-title wrong-text">오답입니다</h3>
@@ -181,11 +185,25 @@ function handleAnswer(userAns, correctAns) {
       currentIndex++;
       renderQuestion();
     });
+    document.getElementById('stopTestBtn').addEventListener('click', stopTest);
   }
 }
 
 function saveToWrongStorage(wordObj) {
   addWrong(wordObj.id);
+}
+
+function stopTest() {
+  questions = [];
+  currentIndex = 0;
+  score = 0;
+  wrongAnswers = [];
+
+  if (settingsEl) {
+    settingsEl.style.display = 'grid';
+  }
+  testCard.innerHTML = `<p class="muted">설정을 고른 뒤 시작을 누르세요.</p>`;
+  scorePill.textContent = '준비';
 }
 
 function finishTest() {
