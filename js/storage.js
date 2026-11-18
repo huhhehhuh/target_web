@@ -1,8 +1,8 @@
 const KEYS = {
-  favorites: "targetVoca:favorites",
-  wrong: "targetVoca:wrong",
-  wrongCounts: "targetVoca:wrongCounts",
-  recentScore: "targetVoca:recentScore",
+  favorites: "targetVoca:2026-2-2:favorites",
+  wrong: "targetVoca:2026-2-2:wrong",
+  wrongCounts: "targetVoca:2026-2-2:wrongCounts",
+  recentScore: "targetVoca:2026-2-2:recentScore",
   settings: "targetVoca:settings",
 };
 
